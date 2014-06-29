@@ -22,18 +22,19 @@ public class Delimiter {
         Job job = Job.getInstance(conf);
         job.setJarByClass(Delimiter.class);
 
-        FileInputFormat.addInputPath(job, new Path("/home/abhishek_linuxhadoop/workspace/MR_WordCount/AmazonMetadata.txt"));
-        outputDir = new File("/home/abhishek_linuxhadoop/workspace/MR_WordCount/OUTPUT_Word_Count");
+        String outpath = "/home/user/workspace/MR_AmazonDataAnalysis/OUTPUT_Word_Count";
+        FileInputFormat.addInputPath(job, new Path("/home/user/workspace/MR_AmazonDataAnalysis/AmazonMetadata.txt"));
+        outputDir = new File(outpath);
         if(outputDir.exists())
         {
         	if(deleteDir(outputDir))
         	{
-        FileOutputFormat.setOutputPath(job, new Path("/home/abhishek_linuxhadoop/workspace/MR_WordCount/OUTPUT_Word_Count"));
+        FileOutputFormat.setOutputPath(job, new Path(outpath));
         	}
         }
         else
         {
-        FileOutputFormat.setOutputPath(job, new Path("/home/abhishek_linuxhadoop/workspace/MR_WordCount/OUTPUT_Word_Count"));
+        FileOutputFormat.setOutputPath(job, new Path(outpath));
         }
 
         job.setMapperClass(DelimiterMapper.class);
@@ -63,8 +64,9 @@ public class Delimiter {
 
         private Text TEXT = new Text();
         String[] rowSplitted;
-        int rowCount;
-        int index;
+        String[] similarProductsRow;
+        int rowCount = 0;
+        int downloadedCount = 0;
         StringBuilder sb = new StringBuilder();
 
         @Override
@@ -81,18 +83,47 @@ public class Delimiter {
         	{
         		rowCount = 0;
         		rowSplitted = value.toString().split("\n");
-        		this.setData(rowSplitted[rowCount].substring(rowSplitted[rowCount].indexOf("Id:") + 3));
+        		this.setData(rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("Id:") + 3));
         		rowCount +=2;
 //        		index = rowSplitted[++rowCount].indexOf("title:");
 //        		sb.append(index);
-        		this.setData(rowSplitted[rowCount].substring(rowSplitted[rowCount].indexOf("title:") + 6).trim());
-        		
-        		
-        		
-        		
-        		
-        		
-        		
+        		this.setData(rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("title:") + 6).trim());
+        		rowCount+=1;
+        		this.setData(rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("group:") + 6).trim());
+        		rowCount+=1;
+        		this.setData(rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("salesrank:") + 10).trim());
+        		rowCount+=1;
+        		similarProductsRow = rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("similar:") + 8).split("  ");
+        		this.setData(similarProductsRow[0].trim());
+        		rowCount+=1;
+        		this.setData(rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("categories:") + 11).trim());
+        		rowCount+=Integer.parseInt(rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("categories:") + 11).trim()) + 1;
+        		this.setData(rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("total:") + 6,rowSplitted[rowCount].
+        				indexOf("downloaded:")).trim());
+        		this.setData(rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("downloaded:") + 11,rowSplitted[rowCount].
+        				indexOf("avg")).trim());
+        		this.setData(rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("avg rating:") + 11).trim());
+        		downloadedCount = Integer.parseInt(rowSplitted[rowCount].substring(rowSplitted[rowCount].
+        				indexOf("downloaded:") + 11,rowSplitted[rowCount].
+        				indexOf("avg")).trim());
+        		rowCount+=1;
+        		for(int i = rowCount;i<downloadedCount+rowCount;i++)
+        		{
+        			this.setData(rowSplitted[i].substring(rowSplitted[i].
+            				indexOf("cutomer:") + 8,rowSplitted[i].
+            				indexOf("rating:")).trim(),"|");
+        		}
+        		sb.append("|");
         	TEXT.set(sb.toString());
         	//	TEXT.set("******************" + rowSplitted[0]);
             context.write(NullWritable.get(), TEXT);
@@ -103,7 +134,7 @@ public class Delimiter {
         	}
         	catch(Exception ex)
         	{
-        		TEXT.set(")()*()*&*(&(*&()*((*()*" + ex.getMessage().toString());
+        		TEXT.set(")()*()*&*(&(*&()*((*()*" + ex.getMessage().toString()+sb);
         		context.write(NullWritable.get(), TEXT);
         	}
         	}
@@ -115,6 +146,16 @@ public class Delimiter {
         		data.trim();
         		sb.append(data);
         		sb.append("=");
+        	}
+        	return sb;
+		}
+public StringBuilder setData(String data,String delimiter) {
+			
+        	if(!data.isEmpty())
+        	{
+        		data.trim();
+        		sb.append(delimiter);
+        		sb.append(data);
         	}
         	return sb;
 		}
